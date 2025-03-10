@@ -9,14 +9,16 @@ let groundY = 0;
 let velocity = { x: 0, y: 0, z: 0 };
 let controls = { up: false, down: false, left: false, right: false, jump: false, punch: false, climb: false };
 let gameActive = true;
-let monkeyColor = 0x8B4513; // Brązowy kolor dla małpek
+let monkeyColor = 0x8B4513;
 let terrainSize = 50;
 let enemySpeed = 0.05;
 
-// Inicjalizacja gry
+console.log("game.js loaded");
+
 function init() {
+    console.log("init called");
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x87CEEB); // Niebieskie niebo
+    scene.background = new THREE.Color(0x87CEEB);
     
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     camera.position.set(0, 5, 10);
@@ -24,6 +26,7 @@ function init() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
+    console.log("Renderer initialized");
     
     clock = new THREE.Clock();
     
@@ -43,7 +46,6 @@ function init() {
     animate();
 }
 
-// Tworzenie terenu
 function createTerrain() {
     const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, 10, 10);
     const terrainMaterial = new THREE.MeshStandardMaterial({ color: 0x4CAF50, side: THREE.DoubleSide });
@@ -63,11 +65,10 @@ function createTerrain() {
     }
 }
 
-// Tworzenie małpy gracza
 function createMonkey() {
     monkey = new THREE.Group();
     
-    const bodyGeometry = new THREE.CapsuleGeometry(monkeySize * 0.4, monkeySize * 0.6, 16);
+    const bodyGeometry = new THREE.CylinderGeometry(monkeySize * 0.4, monkeySize * 0.4, monkeySize * 0.6, 16);
     const bodyMaterial = new THREE.MeshStandardMaterial({ color: monkeyColor });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
     body.position.y = monkeySize * 0.5;
@@ -103,7 +104,7 @@ function createMonkey() {
     rightEye.position.set(-monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.25);
     head.add(rightEye);
     
-    const limbGeometry = new THREE.CapsuleGeometry(monkeySize * 0.1, monkeySize * 0.4, 8);
+    const limbGeometry = new THREE.CylinderGeometry(monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.4, 8);
     const limbMaterial = new THREE.MeshStandardMaterial({ color: monkeyColor });
     
     const leftArm = new THREE.Mesh(limbGeometry, limbMaterial);
@@ -133,7 +134,6 @@ function createMonkey() {
     scene.add(monkey);
 }
 
-// Tworzenie elementów otoczenia
 function createEnvironment() {
     for (let i = 0; i < 8; i++) {
         const trunkGeometry = new THREE.CylinderGeometry(0.5, 0.7, 8, 8);
@@ -166,7 +166,6 @@ function createEnvironment() {
     }
 }
 
-// Tworzenie przeciwników
 function createEnemies(count) {
     for (let i = 0; i < count; i++) {
         const enemyBody = new THREE.Group();
@@ -214,7 +213,6 @@ function createEnemies(count) {
     }
 }
 
-// Obsługa zdarzeń
 function setupEventListeners() {
     window.addEventListener('keydown', (event) => {
         switch(event.code) {
@@ -270,7 +268,6 @@ function setupEventListeners() {
     });
 }
 
-// Funkcje mechaniki gry
 function jump() {
     if (!isJumping && !isClimbing) {
         isJumping = true;
@@ -428,7 +425,6 @@ function updateEnemies(deltaTime) {
     }
 }
 
-// Główna pętla animacji
 function animate() {
     if (!gameActive) return;
     
@@ -485,13 +481,12 @@ function animate() {
         }
     }
     
-    // Animacja kończyn
     const time = clock.getElapsedTime();
     if (controls.up || controls.down || controls.left || controls.right) {
-        monkey.children[2].rotation.z = Math.sin(time * 5) * 0.5; // Left Arm
-        monkey.children[3].rotation.z = -Math.sin(time * 5) * 0.5; // Right Arm
-        monkey.children[4].rotation.z = -Math.sin(time * 5) * 0.5; // Left Leg
-        monkey.children[5].rotation.z = Math.sin(time * 5) * 0.5; // Right Leg
+        monkey.children[2].rotation.z = Math.sin(time * 5) * 0.5;
+        monkey.children[3].rotation.z = -Math.sin(time * 5) * 0.5;
+        monkey.children[4].rotation.z = -Math.sin(time * 5) * 0.5;
+        monkey.children[5].rotation.z = Math.sin(time * 5) * 0.5;
     } else {
         monkey.children[2].rotation.z = 0;
         monkey.children[3].rotation.z = 0;
@@ -506,5 +501,4 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// Uruchomienie gry
 window.onload = init;
