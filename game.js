@@ -244,10 +244,11 @@ function setupEventListeners() {
     
     document.addEventListener('mousemove', (event) => {
         if (document.pointerLockElement === document.body) {
-            const sensitivity = 0.002;
+            const sensitivity = 0.002; // Zmniejszona czułość dla płynności
             const yaw = -event.movementX * sensitivity;
             const pitch = -event.movementY * sensitivity;
             
+            // Aktualizuj rotację kamery płynnie
             camera.rotation.y += yaw;
             camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x + pitch));
         }
@@ -317,8 +318,14 @@ function attemptClimb() {
 
 function updateCameraPosition() {
     const distance = 10;
-    const camPos = new THREE.Vector3(0, 5, distance).applyQuaternion(camera.quaternion);
-    camera.position.copy(monkey.position).add(camPos);
+    const height = 5;
+    // Płynne śledzenie postaci bez drgań
+    const targetPosition = new THREE.Vector3(
+        monkey.position.x,
+        monkey.position.y + height,
+        monkey.position.z + distance
+    );
+    camera.position.lerp(targetPosition, 0.1); // Interpolacja dla płynności
     camera.lookAt(monkey.position);
 }
 
@@ -433,29 +440,32 @@ function animate() {
     const deltaTime = clock.getDelta();
     const moveSpeed = 0.2;
     
-    if (controls.up) {
-        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        forward.y = 0;
-        forward.normalize().multiplyScalar(moveSpeed);
-        monkey.position.add(forward);
-    }
-    if (controls.down) {
-        const backward = new THREE.Vector3(0, 0, 1).applyQuaternion(camera.quaternion);
-        backward.y = 0;
-        backward.normalize().multiplyScalar(moveSpeed);
-        monkey.position.add(backward);
-    }
-    if (controls.left) {
-        const left = new THREE.Vector3(-1, 0, 0).applyQuaternion(camera.quaternion);
-        left.y = 0;
-        left.normalize().multiplyScalar(moveSpeed);
-        monkey.position.add(left);
-    }
-    if (controls.right) {
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-        right.y = 0;
-        right.normalize().multiplyScalar(moveSpeed);
-        monkey.position.add(right);
+    // Ruch postaci tylko, gdy nie wspina się
+    if (!isClimbing) {
+        if (controls.up) {
+            const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            forward.y = 0;
+            forward.normalize().multiplyScalar(moveSpeed);
+            monkey.position.add(forward);
+        }
+        if (controls.down) {
+            const backward = new THREE.Vector3(0, 0, 1).applyQuaternion(camera.quaternion);
+            backward.y = 0;
+            backward.normalize().multiplyScalar(moveSpeed);
+            monkey.position.add(backward);
+        }
+        if (controls.left) {
+            const left = new THREE.Vector3(-1, 0, 0).applyQuaternion(camera.quaternion);
+            left.y = 0;
+            left.normalize().multiplyScalar(moveSpeed);
+            monkey.position.add(left);
+        }
+        if (controls.right) {
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+            right.y = 0;
+            right.normalize().multiplyScalar(moveSpeed);
+            monkey.position.add(right);
+        }
     }
     
     if (isClimbing) {
