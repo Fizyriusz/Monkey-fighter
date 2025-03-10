@@ -12,6 +12,7 @@ let gameActive = true;
 let monkeyColor = 0x8B4513;
 let terrainSize = 50;
 let enemySpeed = 0.05;
+let cameraYaw = 0, cameraPitch = 0; // Nowe zmienne do przechowywania rotacji kamery
 
 console.log("game.js loaded");
 
@@ -83,10 +84,10 @@ function createMonkey() {
     const earGeometry = new THREE.SphereGeometry(monkeySize * 0.1, 8, 8);
     const earMaterial = new THREE.MeshStandardMaterial({ color: monkeyColor });
     const leftEar = new THREE.Mesh(earGeometry, earMaterial);
-    leftEar.position.set(monkeySize * 0.35, monkeySize * 1.2, 0);
+    leftEar.position.set(monkeySize * 0.35, monkeySize * 1.1, 0); // Obniżone uszy
     head.add(leftEar);
     const rightEar = new THREE.Mesh(earGeometry, earMaterial);
-    rightEar.position.set(-monkeySize * 0.35, monkeySize * 1.2, 0);
+    rightEar.position.set(-monkeySize * 0.35, monkeySize * 1.1, 0);
     head.add(rightEar);
     
     const faceGeometry = new THREE.SphereGeometry(monkeySize * 0.15, 16, 16);
@@ -98,29 +99,33 @@ function createMonkey() {
     const eyeGeometry = new THREE.SphereGeometry(monkeySize * 0.05, 8, 8);
     const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0x000000 });
     const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    leftEye.position.set(monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.25);
+    leftEye.position.set(monkeySize * 0.1, monkeySize * 0.05, monkeySize * 0.25); // Obniżone oczy
     head.add(leftEye);
     const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-    rightEye.position.set(-monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.25);
+    rightEye.position.set(-monkeySize * 0.1, monkeySize * 0.05, monkeySize * 0.25);
     head.add(rightEye);
     
     const limbGeometry = new THREE.CylinderGeometry(monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.4, 8);
     const limbMaterial = new THREE.MeshStandardMaterial({ color: monkeyColor });
     
     const leftArm = new THREE.Mesh(limbGeometry, limbMaterial);
-    leftArm.position.set(monkeySize * 0.5, monkeySize * 0.5, 0);
+    leftArm.position.set(monkeySize * 0.5, monkeySize * 0.6, 0); // Poprawiona pozycja ramion
+    leftArm.rotation.z = Math.PI / 4; // Początkowy kąt ramion
     monkey.add(leftArm);
     
     const rightArm = new THREE.Mesh(limbGeometry, limbMaterial);
-    rightArm.position.set(-monkeySize * 0.5, monkeySize * 0.5, 0);
+    rightArm.position.set(-monkeySize * 0.5, monkeySize * 0.6, 0);
+    rightArm.rotation.z = -Math.PI / 4;
     monkey.add(rightArm);
     
     const leftLeg = new THREE.Mesh(limbGeometry, limbMaterial);
-    leftLeg.position.set(monkeySize * 0.2, monkeySize * 0.1, 0);
+    leftLeg.position.set(monkeySize * 0.2, monkeySize * 0.2, 0); // Poprawiona pozycja nóg
+    leftLeg.rotation.z = Math.PI / 8;
     monkey.add(leftLeg);
     
     const rightLeg = new THREE.Mesh(limbGeometry, limbMaterial);
-    rightLeg.position.set(-monkeySize * 0.2, monkeySize * 0.1, 0);
+    rightLeg.position.set(-monkeySize * 0.2, monkeySize * 0.2, 0);
+    rightLeg.rotation.z = -Math.PI / 8;
     monkey.add(rightLeg);
     
     const tailGeometry = new THREE.CylinderGeometry(monkeySize * 0.05, monkeySize * 0.02, monkeySize * 0.8, 8);
@@ -190,10 +195,10 @@ function createEnemies(count) {
         const eyeGeometry = new THREE.SphereGeometry(monkeySize * 0.05, 8, 8);
         const eyeMaterial = new THREE.MeshStandardMaterial({ color: 0xFF0000 });
         const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        leftEye.position.set(monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.25);
+        leftEye.position.set(monkeySize * 0.1, monkeySize * 0.05, monkeySize * 0.25); // Obniżone oczy
         head.add(leftEye);
         const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        rightEye.position.set(-monkeySize * 0.1, monkeySize * 0.1, monkeySize * 0.25);
+        rightEye.position.set(-monkeySize * 0.1, monkeySize * 0.05, monkeySize * 0.25);
         head.add(rightEye);
         
         const x = Math.random() * (terrainSize - 10) - (terrainSize / 2 - 5);
@@ -244,13 +249,10 @@ function setupEventListeners() {
     
     document.addEventListener('mousemove', (event) => {
         if (document.pointerLockElement === document.body) {
-            const sensitivity = 0.002; // Zmniejszona czułość dla płynności
-            const yaw = -event.movementX * sensitivity;
-            const pitch = -event.movementY * sensitivity;
-            
-            // Aktualizuj rotację kamery płynnie
-            camera.rotation.y += yaw;
-            camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.rotation.x + pitch));
+            const sensitivity = 0.002;
+            cameraYaw -= event.movementX * sensitivity;
+            cameraPitch -= event.movementY * sensitivity;
+            cameraPitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraPitch)); // Ograniczenie pitch
         }
     });
     
@@ -297,20 +299,25 @@ function attemptClimb() {
         
         for (const tree of trees) {
             const distance = monkey.position.distanceTo(tree.position);
-            if (distance < 3 && distance < minDistance) {
+            console.log(`Distance to tree at (${tree.position.x}, ${tree.position.z}): ${distance}`); // Debug
+            if (distance < 5 && distance < minDistance) { // Zwiększona odległość do 5
                 minDistance = distance;
                 nearestTree = tree;
             }
         }
         
         if (nearestTree) {
+            console.log("Climbing started on tree at", nearestTree.position);
             isClimbing = true;
             monkey.userData.climbingTree = nearestTree;
             velocity.y = 0;
             monkey.position.x = nearestTree.position.x;
             monkey.position.z = nearestTree.position.z;
+        } else {
+            console.log("No tree close enough to climb");
         }
     } else {
+        console.log("Climbing stopped");
         isClimbing = false;
         monkey.userData.climbingTree = null;
     }
@@ -319,13 +326,20 @@ function attemptClimb() {
 function updateCameraPosition() {
     const distance = 10;
     const height = 5;
-    // Płynne śledzenie postaci bez drgań
-    const targetPosition = new THREE.Vector3(
-        monkey.position.x,
-        monkey.position.y + height,
-        monkey.position.z + distance
+    
+    // Oblicz pozycję kamery na podstawie rotacji yaw i pitch
+    const camX = distance * Math.sin(cameraYaw) * Math.cos(cameraPitch);
+    const camY = height + distance * Math.sin(cameraPitch);
+    const camZ = distance * Math.cos(cameraYaw) * Math.cos(cameraPitch);
+    
+    // Ustaw pozycję kamery względem postaci
+    camera.position.set(
+        monkey.position.x + camX,
+        monkey.position.y + camY,
+        monkey.position.z + camZ
     );
-    camera.position.lerp(targetPosition, 0.1); // Interpolacja dla płynności
+    
+    // Kamera patrzy na postać
     camera.lookAt(monkey.position);
 }
 
@@ -416,7 +430,7 @@ function updateEnemies(deltaTime) {
                     score = Math.max(0, score - 5);
                     updateScore();
                 }
-                const attackDistance = enemy.mesh.position.distanceTo(monkey.position);
+                const attackDistance = monkey.mesh.position.distanceTo(monkey.position);
                 if (attackDistance > 2) enemy.state = "chase";
                 break;
                 
@@ -440,7 +454,6 @@ function animate() {
     const deltaTime = clock.getDelta();
     const moveSpeed = 0.2;
     
-    // Ruch postaci tylko, gdy nie wspina się
     if (!isClimbing) {
         if (controls.up) {
             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -493,15 +506,15 @@ function animate() {
     
     const time = clock.getElapsedTime();
     if (controls.up || controls.down || controls.left || controls.right) {
-        monkey.children[2].rotation.z = Math.sin(time * 5) * 0.5;
-        monkey.children[3].rotation.z = -Math.sin(time * 5) * 0.5;
-        monkey.children[4].rotation.z = -Math.sin(time * 5) * 0.5;
-        monkey.children[5].rotation.z = Math.sin(time * 5) * 0.5;
+        monkey.children[2].rotation.z = Math.PI / 4 + Math.sin(time * 5) * 0.3; // Mniejsza amplituda animacji
+        monkey.children[3].rotation.z = -Math.PI / 4 - Math.sin(time * 5) * 0.3;
+        monkey.children[4].rotation.z = Math.PI / 8 + Math.sin(time * 5) * 0.3;
+        monkey.children[5].rotation.z = -Math.PI / 8 - Math.sin(time * 5) * 0.3;
     } else {
-        monkey.children[2].rotation.z = 0;
-        monkey.children[3].rotation.z = 0;
-        monkey.children[4].rotation.z = 0;
-        monkey.children[5].rotation.z = 0;
+        monkey.children[2].rotation.z = Math.PI / 4;
+        monkey.children[3].rotation.z = -Math.PI / 4;
+        monkey.children[4].rotation.z = Math.PI / 8;
+        monkey.children[5].rotation.z = -Math.PI / 8;
     }
     
     updateCameraPosition();
